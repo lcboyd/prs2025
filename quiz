@@ -1,0 +1,264 @@
+ <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plastic Surgery Senior Superlatives</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f9f9f9; }
+    h1, h2 { text-align: center; }
+    .quiz-section { margin-bottom: 50px; }
+    .question-block {
+      background: white; padding: 20px; margin: 10px 0;
+      border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .droppable {
+      min-height: 50px; border: 2px dashed #ccc;
+      padding: 5px; margin-top: 10px;
+      background: #fff; border-radius: 5px;
+      display: flex; flex-wrap: wrap; gap: 5px;
+      cursor: default;
+    }
+    .draggable {
+      background: #add8e6; padding: 5px 10px; margin: 5px 5px 0 0;
+      border-radius: 5px; cursor: grab; user-select: none;
+      display: inline-block;
+    }
+    #names, #names2 {
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      border-radius: 8px;
+      background: white;
+      min-height: 50px;
+      display: flex; flex-wrap: wrap; gap: 10px;
+    }
+    #trash {
+      border: 2px solid red;
+      background: #ffe6e6;
+      border-radius: 8px;
+      min-height: 40px;
+      margin-top: 30px;
+      text-align: center;
+      padding: 10px;
+      font-weight: bold;
+      color: darkred;
+      user-select: none;
+    }
+    .submit-btn {
+      display: block; margin: 20px auto;
+      padding: 10px 20px; font-size: 16px;
+      cursor: pointer;
+    }
+    .results {
+      background: #e6ffe6; padding: 20px;
+      border-radius: 8px; margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Plastic Surgery Senior Superlatives</h1>
+
+  <div id="names-container">
+    <h2>Drag Names (for Quiz 1)</h2>
+    <div id="draggable-names"></div>
+  </div>
+
+  <form id="quiz-form">
+    <div class="quiz-section" id="quiz1">
+      <h2>Quiz 1: Funny Superlatives</h2>
+    </div>
+
+    <div id="names2-container">
+      <h2>Drag Names (for Quiz 2)</h2>
+      <div id="draggable-names-2"></div>
+    </div>
+
+    <div class="quiz-section" id="quiz2">
+      <h2>Quiz 2: Positive Superlatives</h2>
+    </div>
+
+    <button type="submit" class="submit-btn">Submit</button>
+  </form>
+
+  <div id="trash" class="droppable" style="margin-top: 30px;">
+    Drag Here to Remove Name
+  </div>
+
+  <div id="results" class="results" style="display:none">
+    <h2>Most Common Answers</h2>
+    <div id="statistics"></div>
+  </div>
+
+  <script>
+    const OWNER_PASSWORD = 'supersecret'; // Set your password here
+    let isOwner = false;
+
+    const names = ["Laura", "Peter", "Cedar", "Jason", "Amanda", "Tom", "Rohun", "Amir", "Lynn", "Ally", "Louisa", "Andi"];
+    const superlatives1 = [
+      "Most likely to yell at the ED",
+      "Most likely to leave a dogear",
+      "Bossiest",
+      "Biggest gossip",
+      "Most likely to be late to rounds/clinic/conference",
+      "Most likley to quit and go into derm",
+      "Most likley to fight an attending",
+      "Most likely to see 4 patients in a 25 person clinic",
+      "The know it all (Hermione)",
+      "Most likely to make time to eat despite 5 consults",
+      "The least likley to ever write a paper",
+      "Most likely to only wear Figs"
+    ];
+    const superlatives2 = [
+      "Best dressed for clinic",
+      "Future ASPS President",
+      "Biggest team player",
+      "Most fun to scrub with",
+      "Most resilient",
+      "Most likley to operate on call",
+      "Most impressive post call energy",
+      "Most likely to have stalked the entire ED board",
+      "Most loved by patients",
+      "Most likely to make $5m/year",
+      "Best OR playlist",
+      "Best scub cap game"
+    ];
+
+    // Prompt for owner password on page load
+    window.onload = function() {
+      const pw = prompt("Enter password to view stats after submission:");
+      if (pw === OWNER_PASSWORD) {
+        isOwner = true;
+        alert("Welcome, owner! You will see the stats after submission.");
+      } else {
+        isOwner = false;
+        alert("You will NOT see the stats after submission.");
+      }
+    };
+
+    function createQuizSection(sectionId, questions) {
+      const section = document.getElementById(sectionId);
+      questions.forEach(question => {
+        const block = document.createElement('div');
+        block.className = 'question-block';
+        block.innerHTML = <strong>${question}</strong><div class="droppable" data-question="${question}"></div>;
+        section.appendChild(block);
+      });
+    }
+
+    function createDraggableNames(containerId) {
+      const container = document.getElementById(containerId);
+      names.forEach(name => {
+        const span = document.createElement('span');
+        span.textContent = name;
+        span.className = 'draggable';
+        span.draggable = true;
+        span.setAttribute('data-name', name);
+        container.appendChild(span);
+      });
+    }
+
+    document.addEventListener('dragstart', function (e) {
+      if (e.target.classList.contains('draggable')) {
+        e.dataTransfer.setData('text/plain', e.target.getAttribute('data-name'));
+      }
+    });
+
+    document.addEventListener('dragover', function (e) {
+      if (e.target.classList.contains('droppable')) {
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener('drop', function (e) {
+      if (e.target.classList.contains('droppable')) {
+        e.preventDefault();
+        const name = e.dataTransfer.getData('text/plain');
+        if (!name) return;
+
+        // Trash area logic: remove dropped element by NOT adding it anywhere
+        if (e.target.id === 'trash') {
+          // Find and remove the dragged element from wherever it was dragged from
+          // Since we clone on drop, nothing to remove here
+          // So do nothing (name removed)
+          return;
+        }
+
+        // Otherwise, add the name to the droppable area
+        const newSpan = document.createElement('span');
+        newSpan.textContent = name;
+        newSpan.className = 'draggable';
+        newSpan.draggable = true;
+        newSpan.setAttribute('data-name', name);
+        // Allow removing by dragging to trash, so enable dragstart on this clone
+        e.target.appendChild(newSpan);
+      }
+    });
+
+    // Allow dragging of cloned names inside droppables
+    // We need to handle dragstart on dynamic elements
+    // Already handled by event delegation above
+
+    // Bonus: Allow removing name by dragging from droppable to trash
+    // We just remove it on drop into trash area (done above)
+
+    // Optional: allow clicking on a name inside droppable to remove it immediately
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('draggable')) {
+        // Check if clicked element is inside a droppable but NOT inside name banks
+        // i.e. inside quiz answers or trash
+        const parentDroppable = e.target.closest('.droppable');
+        if (parentDroppable && parentDroppable.id !== 'draggable-names' && parentDroppable.id !== 'draggable-names-2') {
+          // Remove clicked name from droppable area
+          e.target.remove();
+        }
+      }
+    });
+
+    document.getElementById('quiz-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      if (!isOwner) {
+        alert("Thank you for submitting! Stats are only visible to the owner.");
+        return;
+      }
+
+      // Gather stats for all questions
+      const stats = {};
+      document.querySelectorAll('.droppable').forEach(droppable => {
+        const question = droppable.getAttribute('data-question');
+        if (!question) return; // Skip name banks and trash
+
+        const namesInQuestion = [...droppable.querySelectorAll('.draggable')].map(span => span.getAttribute('data-name'));
+        if (!stats[question]) stats[question] = {};
+        namesInQuestion.forEach(name => {
+          if (name) stats[question][name] = (stats[question][name] || 0) + 1;
+        });
+      });
+
+      // Display results
+      const resultContainer = document.getElementById('statistics');
+      resultContainer.innerHTML = '';
+
+      for (const question in stats) {
+        const entries = Object.entries(stats[question]);
+        if (entries.length > 0) {
+          entries.sort((a, b) => b[1] - a[1]);
+          // Show all names and counts for transparency
+          const list = entries.map(([name, count]) => ${name} (${count})).join(', ');
+          resultContainer.innerHTML += <p><strong>${question}:</strong> ${list}</p>;
+        }
+      }
+
+      document.getElementById('results').style.display = 'block';
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+
+    // Initialize
+    createQuizSection('quiz1', superlatives1);
+    createQuizSection('quiz2', superlatives2);
+    createDraggableNames('draggable-names');
+    createDraggableNames('draggable-names-2');
+  </script>
+</body>
+</html>
